@@ -27,9 +27,6 @@ let latestReadings = {
   timestamp: new Date().toISOString()
 };
 
-/**
- * Load device configuration and historical readings from disk
- */
 function loadData() {
   if (fs.existsSync(CONFIG_FILE)) {
     try {
@@ -52,9 +49,6 @@ function loadData() {
   }
 }
 
-/**
- * Persist readings and configuration to disk
- */
 function saveData() {
   try {
     fs.writeFileSync(DATA_FILE, JSON.stringify(readingsLog, null, 2));
@@ -71,9 +65,6 @@ function saveData() {
   }
 }
 
-/**
- * Initialize or re-initialize the Tuya device instance
- */
 function initializeDevice() {
   if (!deviceConfig) return;
 
@@ -125,9 +116,6 @@ function initializeDevice() {
   });
 }
 
-/**
- * Attempt to connect to the device
- */
 async function connectToDevice() {
   if (!device) return;
 
@@ -141,9 +129,6 @@ async function connectToDevice() {
   }
 }
 
-/**
- * Update latestReadings based on lastKnownDps
- */
 function updateReadingsFromDps() {
   const powerOn = lastKnownDps['1'] === true;
   const rawVolt = lastKnownDps['20'] || 0;
@@ -160,9 +145,6 @@ function updateReadingsFromDps() {
   };
 }
 
-/**
- * Store a data point if connected
- */
 function storeDataPoint() {
   if (connected) {
     readingsLog.push(latestReadings);
@@ -170,9 +152,7 @@ function storeDataPoint() {
   }
 }
 
-/**
- * Filter readings by time range
- */
+
 function getFilteredReadings(range, start, end) {
   const now = new Date();
   let fromDate = new Date(0);
@@ -199,9 +179,6 @@ function getFilteredReadings(range, start, end) {
     .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 }
 
-// API Endpoints
-
-// Device configuration
 app.get('/api/device', (req, res) => {
   if (!deviceConfig) {
     return res.status(404).json({ error: 'No device configured' });
@@ -236,7 +213,7 @@ app.delete('/api/device', (req, res) => {
   res.json({ success: true });
 });
 
-// Device status
+
 app.get('/api/status', (req, res) => {
   res.json({
     connected,
@@ -244,7 +221,6 @@ app.get('/api/status', (req, res) => {
   });
 });
 
-// Toggle power
 app.post('/api/toggle', async (req, res) => {
   if (!connected || !device) {
     return res.status(503).json({ success: false, error: 'Device not connected' });
@@ -259,7 +235,7 @@ app.post('/api/toggle', async (req, res) => {
   }
 });
 
-// Readings and energy data
+
 app.get('/api/data', (req, res) => {
   const { range, start, end } = req.query;
   res.json(getFilteredReadings(range, start, end));
@@ -281,16 +257,13 @@ app.get('/api/energy', (req, res) => {
   res.json({ energy_kwh: parseFloat((energy / 1000).toFixed(3)), readings_count: readings.length });
 });
 
-/**
- * Main startup and intervals
- */
+
 function startup() {
   loadData();
   if (deviceConfig) {
     initializeDevice();
   }
 
-  // Check connection every 5 seconds
   setInterval(async () => {
     if (deviceConfig) {
       if (!connected) {
@@ -302,10 +275,8 @@ function startup() {
     }
   }, 5000);
 
-  // Store data every 60 seconds if connected
   setInterval(storeDataPoint, 60000);
 
-  // Persist data every 60 seconds
   setInterval(saveData, 60000);
 }
 
