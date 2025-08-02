@@ -1,0 +1,1902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EnergyFlow - Smart Monitoring Hub</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --primary-pink: #F06292;
+            --light-pink: #F8BBD0;
+            --dark-pink: #C2185B;
+            --baby-pink: #fce4ec;
+            --secondary-pink: #E91E63;
+            --accent-pink: #FF4081;
+            --gradient-1: linear-gradient(135deg, var(--primary-pink), var(--secondary-pink));
+            --gradient-2: linear-gradient(135deg, var(--light-pink), var(--primary-pink));
+            --gradient-3: linear-gradient(135deg, var(--dark-pink), var(--secondary-pink));
+            --gradient-4: linear-gradient(135deg, var(--baby-pink), var(--light-pink));
+            --background: #fce4ec;
+            --surface: #ffffff;
+            --text-primary: #2d2d2d;
+            --text-secondary: #6b6b6b;
+            --shadow: 0 8px 32px rgba(240, 98, 146, 0.15);
+            --shadow-hover: 0 12px 40px rgba(240, 98, 146, 0.25);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+            justify-content: center;
+        }
+
+        .main-content {
+            width: 100%;
+            max-width: 1200px;
+            padding: 40px;
+            background: var(--background);
+        }
+        
+        .section {
+            margin-bottom: 60px;
+        }
+
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .status-cards-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* Smaller Device Management Card */
+        .device-management-card {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border-left: 4px solid var(--secondary-pink);
+        }
+
+        .device-management-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        /* Status metric cards - made smaller */
+        .metric-card {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-1);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .section-title {
+            color: var(--text-primary);
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--secondary-pink);
+            padding-bottom: 10px;
+        }
+
+        .device-setup-compact {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .input-group {
+            margin-bottom: 0;
+        }
+
+        .input-label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid var(--light-pink);
+            border-radius: 8px;
+            background: var(--surface);
+            color: var(--text-primary);
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--secondary-pink);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .input-field::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .action-button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 100px;
+        }
+
+        .btn-connect {
+            background: var(--gradient-1);
+            color: white;
+        }
+
+        .btn-disconnect {
+            background: linear-gradient(135deg, var(--dark-pink), var(--secondary-pink));
+            color: white;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .device-status {
+            background: rgba(233, 30, 99, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 14px;
+            border: 2px solid var(--secondary-pink);
+            box-shadow: 0 3px 12px rgba(233, 30, 99, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .device-status:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 16px rgba(233, 30, 99, 0.2);
+        }
+
+        .status-connected {
+            color: var(--secondary-pink);
+            margin-bottom: 12px;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .status-disconnected {
+            color: var(--dark-pink);
+            margin-bottom: 12px;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .page-header {
+            margin-bottom: 40px;
+        }
+
+        .page-title {
+            font-size: 36px;
+            font-weight: 700;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .page-description {
+            color: var(--text-secondary);
+            font-size: 18px;
+            font-weight: 400;
+        }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .metric-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .metric-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: white;
+        }
+
+        .icon-power {
+            background: var(--gradient-1);
+        }
+
+        .icon-connection {
+            background: var(--gradient-3);
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .metric-unit {
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .power-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            outline: none;
+        }
+
+        .toggle-switch.active {
+            background: var(--gradient-1);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(30px);
+        }
+
+        .toggle-label {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 12px;
+        }
+
+        .readings-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .reading-widget {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .reading-widget::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-2);
+        }
+
+        .reading-widget:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .reading-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary-pink);
+            margin-bottom: 8px;
+        }
+
+        .reading-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .analytics-section-card {
+            background: var(--surface);
+            border-radius: 20px;
+            padding: 35px;
+            box-shadow: var(--shadow);
+            margin-bottom: 40px;
+            border-top: 4px solid var(--primary-pink);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .section-title-main {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .total-usage-card {
+            background: var(--gradient-4);
+            border: 3px solid var(--primary-pink);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .total-usage-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .usage-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary-pink);
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .usage-value {
+            font-size: 36px;
+            font-weight: 800;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .analytics-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .chart-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-select {
+            padding: 12px 16px;
+            border: 2px solid var(--light-pink);
+            border-radius: 10px;
+            background: var(--surface);
+            color: var(--text-primary);
+            font-weight: 500;
+            min-width: 160px;
+            transition: all 0.3s ease;
+        }
+
+        .control-select:focus {
+            outline: none;
+            border-color: var(--primary-pink);
+        }
+
+        .export-btn {
+            padding: 12px 20px;
+            background: var(--gradient-1);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .chart-container {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 30px;
+            height: 450px;
+            position: relative;
+            margin-bottom: 30px;
+            border: 2px solid var(--light-pink);
+        }
+
+        .calculator-workspace {
+            background: var(--surface);
+            border-radius: 20px;
+            padding: 35px;
+            box-shadow: var(--shadow);
+            margin-bottom: 40px;
+            border-top: 4px solid var(--primary-pink);
+        }
+
+        .calculator-form {
+            background: var(--gradient-4);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 25px;
+            align-items: end;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .form-field {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .field-label {
+            display: block;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .field-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--light-pink);
+            border-radius: 10px;
+            background: var(--surface);
+            color: var(--text-primary);
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .field-input:focus {
+            outline: none;
+            border-color: var(--primary-pink);
+        }
+
+        .calculate-btn {
+            padding: 14px 25px;
+            background: var(--gradient-3);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .calculate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .result-display {
+            background: var(--surface);
+            border: 3px solid var(--primary-pink);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            margin-top: 30px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
+        .result-display:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .result-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-pink);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .result-amount {
+            font-size: 56px;
+            font-weight: 800;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 30px;
+        }
+
+        .data-grid {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--surface);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .data-grid th {
+            background: var(--primary-pink);
+            color: white;
+            padding: 18px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .data-grid td {
+            padding: 15px 18px;
+            border-bottom: 1px solid var(--light-pink);
+            color: var(--text-primary);
+        }
+
+        .data-grid tr:nth-child(even) {
+            background: rgba(240, 98, 146, 0.05);
+        }
+
+        .data-grid tr:hover {
+            background: rgba(240, 98, 146, 0.1);
+        }
+
+        .alert-message {
+            background: rgba(240, 98, 146, 0.1);
+            border: 2px solid var(--primary-pink);
+            color: var(--dark-pink);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 500;
+            margin-top: 20px;
+        }
+
+        .confirmation-dialog {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .dialog-content {
+            background: var(--surface);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: var(--shadow-hover);
+            max-width: 450px;
+            text-align: center;
+            transform: scale(0.9);
+            opacity: 0;
+            animation: dialogAppear 0.3s ease-out forwards;
+        }
+
+        .dialog-message {
+            font-size: 18px;
+            color: var(--text-primary);
+            margin-bottom: 30px;
+        }
+
+        .dialog-actions {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .dialog-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-confirm {
+            background: var(--gradient-1);
+            color: white;
+        }
+
+        .btn-cancel {
+            background: #e0e0e0;
+            color: var(--text-primary);
+        }
+
+        @keyframes dialogAppear {
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .confirmation-dialog:not(.hidden) {
+            display: flex;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 20px;
+            }
+
+            .dashboard-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .readings-display {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .analytics-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .form-row {
+                flex-direction: column;
+            }
+
+            .section-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .page-title {
+                font-size: 28px;
+            }
+            .device-setup-compact {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <main class="main-content">
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="section">
+                <div class="page-header">
+                    <h1 class="page-title">Energy Dashboard</h1>
+                    <p class="page-description">Real-time monitoring and intelligent control system</p>
+                    <a href="" class="page-description" style="color: var(--secondary-pink); font-weight: 600;">User Manual</a>
+                </div>
+
+                <!-- New Dashboard Layout: Device Management (Left) + Status Cards (Right) -->
+                <div class="dashboard-layout">
+                    <!-- Device Management Card - Left Side, Smaller -->
+                    <div class="device-management-card">
+                        <div class="section-title">Manage Device Connection</div>
+
+                        <div id="device-setup" class="device-setup-compact">
+                            <div class="input-group">
+                                <label class="input-label">Device ID</label>
+                                <input type="text" class="input-field" id="device-id" placeholder="Enter device identifier">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">IP Address</label>
+                                <input type="text" class="input-field" id="device-ip" placeholder="192.168.1.100">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Local Key</label>
+                                <input type="text" class="input-field" id="device-key" placeholder="Enter local key">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Version</label>
+                                <input type="text" class="input-field" id="device-version" placeholder="3.5">
+                            </div>
+                        </div>
+                        <button class="action-button btn-connect" id="connect-btn" onclick="connectDevice()">Connect Device</button>
+
+                        <div id="device-info" class="device-status" style="display: none;">
+                            <div id="device-connection-status"></div>
+                            <button class="action-button btn-disconnect" onclick="showDisconnectDialog()">Disconnect Device</button>
+                        </div>
+                    </div>
+
+                    <!-- Status Cards Container - Right Side, Larger -->
+                    <div class="status-cards-container">
+                        <!-- Connection Status Card -->
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <div class="metric-title">Connection Status</div>
+                                <div class="metric-icon icon-connection">
+                                    <i class="fas fa-wifi" id="connection-icon"></i>
+                                </div>
+                            </div>
+                            <div class="metric-value" id="connection-status-text">Checking...</div>
+                            <div class="metric-unit">System Status</div>
+                        </div>
+
+                        <!-- Power Status Card -->
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <div class="metric-title">Power Status</div>
+                                <div class="metric-icon icon-power">
+                                    <i class="fas fa-power-off" id="power-icon"></i>
+                                </div>
+                            </div>
+                            <div class="metric-value" id="power-status-text">Unknown</div>
+                            <div class="metric-unit">Device State</div>
+                            <div class="power-control">
+                                <button class="toggle-switch" id="power-toggle" onclick="togglePowerState()" disabled></button>
+                                <span class="toggle-label">Power Control</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="readings-display">
+                    <div class="reading-widget">
+                        <div class="reading-value" id="power-reading">0</div>
+                        <div class="reading-label">Watts</div>
+                    </div>
+                    <div class="reading-widget">
+                        <div class="reading-value" id="current-reading">0.00</div>
+                        <div class="reading-label">Amperes</div>
+                    </div>
+                    <div class="reading-widget">
+                        <div class="reading-value" id="voltage-reading">0</div>
+                        <div class="reading-label">Volts</div>
+                    </div>
+                </div>
+
+                <div class="alert-message" id="device-alert" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    No device connected. Historical data and analytics are still available below.
+                </div>
+            </section>
+
+            <!-- Analytics Section -->
+            <section id="analytics-section" class="section">
+                <div class="page-header">
+                    <h1 class="page-title">Analytics Dashboard</h1>
+                    <p class="page-description">Visualize your energy data over time.</p>
+                </div>
+                <div class="analytics-section-card">
+                    <div class="section-header">
+                        <h3 class="section-title-main">Usage Trends</h3>
+                        <div class="analytics-controls">
+                            
+                            <div class="chart-controls">
+                                <select class="control-select" id="metric-type">
+                                    <option value="power">Power (Watts)</option>
+                                    <option value="current">Current (A)</option>
+                                    <option value="voltage">Voltage (V)</option>
+                                </select>
+                                <select class="control-select" id="time-period" onchange="toggleCustomDateRange()">
+                                    <option value="1h">Last Hour</option>
+                                    <option value="6h">Last 6 Hours</option>
+                                    <option value="24h">Last 24 Hours</option>
+                                    <option value="7d">Last Week</option>
+                                    <option value="30d">Last Month</option>
+                                    <option value="365d">Last Year</option>
+                                    <option value="custom">Custom Range</option>
+                                </select>
+                                <button class="export-btn" onclick="exportAnalytics()">
+                                    <i class="fas fa-download"></i>
+                                    Export Analytics
+                                </button>
+                                <div class="control-select" id="energy-usage-card">
+                                    <div class="usage-title">Total Energy Usage</div>
+                                    <div class="usage-value" id="analytics-total-usage">Calculating...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="custom-date-range" id="custom-dates" style="display: none;">
+                        <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 20px; flex-wrap: wrap;">
+                            <input type="datetime-local" class="field-input" id="start-date" style="flex: 1; min-width: 200px;">
+                            <input type="datetime-local" class="field-input" id="end-date" style="flex: 1; min-width: 200px;">
+                            <button class="calculate-btn" onclick="updateAnalytics()">Apply Range</button>
+                        </div>
+                    </div>
+
+                    <div class="chart-container">
+                        <canvas id="analyticsChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+           <!-- Calculator Section -->
+            <section id="calculator" class="section">
+                <div class="page-header">
+                    <h1 class="page-title">Electricity Bill Calculator</h1>
+                    <p class="page-description">Calculate your monthly electricity costs with precision</p>
+                </div>
+
+                <div class="calculator-workspace">
+                    <div class="calculator-form">
+                        <h4 style="color: var(--text-primary); margin-bottom: 25px; font-size: 20px; font-weight: 700;">Usage Calculator</h4>
+                        <div class="form-row">
+                            <div class="form-field">
+                                <label class="field-label">Monthly Consumption (kWh)</label>
+                                <input type="number" class="field-input" id="consumption-input" placeholder="Enter your units" min="0" step="0.01">
+                            </div>
+                                <button class="calculate-btn" onclick="calculateElectricityBill()">
+                                    <i class="fas fa-calculator"></i>
+                                    Calculate Bill
+                                </button>
+                                <button class="export-btn" onclick="exportBillReport()" style="display: none;" id="export-bill">
+                                    <i class="fas fa-file-pdf"></i>
+                                    Export Report
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="result-display" id="bill-results" style="display: none;">
+                            <h4 class="result-title">Your Electricity Bill</h4>
+                            <div class="result-amount" id="total-bill">৳ 0.00</div>
+                            <div id="bill-breakdown-table"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Confirmation Dialog -->
+    <div id="confirmation-dialog" class="confirmation-dialog hidden">
+        <div class="dialog-content">
+            <p class="dialog-message">Are you sure you want to disconnect this device?</p>
+            <div class="dialog-actions">
+                <button class="dialog-btn btn-confirm" id="confirm-disconnect">Disconnect</button>
+                <button class="dialog-btn btn-cancel" id="cancel-disconnect">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let analyticsChart;
+        let statusUpdateInterval;
+        let chartRefreshInterval;
+        let currentBillCalculation = null;
+        let deviceConnected = false;
+        let connectedDeviceInfo = null;
+        let isInitialized = false;
+
+        const chartColorSchemes = {
+            power: {
+                border: '#F06292',
+                background: 'rgba(240, 98, 146, 0.1)',
+                point: '#F06292'
+            },
+            current: {
+                border: '#E91E63',
+                background: 'rgba(233, 30, 99, 0.1)',
+                point: '#E91E63'
+            },
+            voltage: {
+                border: '#C2185B',
+                background: 'rgba(194, 24, 91, 0.1)',
+                point: '#C2185B'
+            }
+        };
+
+        // Chart.js plugin to draw white background
+        const chartAreaBackground = {
+            id: 'chartAreaBackground',
+            beforeDraw(chart, args, options) {
+                const {ctx, chartArea: {left, top, width, height}} = chart;
+                ctx.save();
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(left, top, width, height);
+                ctx.restore();
+            }
+        };
+        Chart.register(chartAreaBackground);
+
+        async function connectDevice() {
+            const deviceId = document.getElementById('device-id').value.trim();
+            const deviceIp = document.getElementById('device-ip').value.trim();
+            const deviceKey = document.getElementById('device-key').value.trim();
+            const deviceVersion = document.getElementById('device-version').value.trim();
+
+            if (!deviceId || !deviceIp || !deviceKey || !deviceVersion) {
+                alert('Please fill in all device details');
+                return;
+            }
+
+            // Show loading state
+            const connectBtn = document.getElementById('connect-btn');
+            const originalText = connectBtn.textContent;
+            connectBtn.textContent = 'Connecting...';
+            connectBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/device', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        id: deviceId, 
+                        ip: deviceIp, 
+                        key: deviceKey, 
+                        version: deviceVersion 
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    deviceConnected = true;
+                    connectedDeviceInfo = {
+                        id: deviceId,
+                        ip: deviceIp,
+                        version: deviceVersion
+                    };
+                    updateDeviceInterface();
+                    await refreshStatus();
+                    await updateAnalytics();
+                } else {
+                    alert('Error connecting device: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error connecting device:', error);
+                alert('Failed to connect device. Please check your connection and API server.');
+            } finally {
+                // Restore button state
+                connectBtn.textContent = originalText;
+                connectBtn.disabled = false;
+            }
+        }
+
+        function showDisconnectDialog() {
+            document.getElementById('confirmation-dialog').classList.remove('hidden');
+        }
+
+        function hideDisconnectDialog() {
+            document.getElementById('confirmation-dialog').classList.add('hidden');
+        }
+
+        document.getElementById('confirm-disconnect').addEventListener('click', async () => {
+            hideDisconnectDialog();
+            try {
+                const response = await fetch('/api/device', {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    deviceConnected = false;
+                    connectedDeviceInfo = null;
+                    updateDeviceInterface();
+                    resetCurrentReadings();
+                    // Don't reset analytics - keep historical data
+                } else {
+                    alert('Error disconnecting device: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error disconnecting device:', error);
+                alert('Failed to disconnect device. Please check your connection.');
+            }
+        });
+
+        document.getElementById('cancel-disconnect').addEventListener('click', hideDisconnectDialog);
+
+        async function checkExistingDevice() {
+            try {
+                const response = await fetch('/api/device');
+                if (response.ok) {
+                    const device = await response.json();
+                    if (device && device.id) {
+                        deviceConnected = true;
+                        connectedDeviceInfo = {
+                            id: device.id || 'Unknown',
+                            ip: device.ip || 'Unknown',
+                            version: device.version || 'Unknown'
+                        };
+                    } else {
+                        deviceConnected = false;
+                        connectedDeviceInfo = null;
+                    }
+                } else {
+                    deviceConnected = false;
+                    connectedDeviceInfo = null;
+                }
+            } catch (error) {
+                console.error('Error checking device:', error);
+                deviceConnected = false;
+                connectedDeviceInfo = null;
+            }
+            updateDeviceInterface();
+        }
+
+        function updateDeviceInterface() {
+            const deviceSetup = document.getElementById('device-setup');
+            const deviceInfo = document.getElementById('device-info');
+            const deviceAlert = document.getElementById('device-alert');
+            const connectButton = document.getElementById('connect-btn');
+
+            if (deviceConnected && connectedDeviceInfo) {
+                // Device is connected
+                deviceSetup.style.display = 'none';
+                connectButton.style.display = 'none';
+                deviceInfo.style.display = 'block';
+                deviceAlert.style.display = 'none';
+                
+                document.getElementById('device-connection-status').innerHTML = 
+                    '<div class="status-connected"><i class="fas fa-check-circle"></i> Device Connected</div>' +
+                    `<div style="font-size: 12px; margin-top: 8px; color: var(--text-secondary);">
+                        ID: ${connectedDeviceInfo.id}<br>
+                        IP: ${connectedDeviceInfo.ip}
+                    </div>`;
+
+                // Clear form fields
+                document.getElementById('device-id').value = '';
+                document.getElementById('device-ip').value = '';
+                document.getElementById('device-key').value = '';
+                document.getElementById('device-version').value = '';
+            } else {
+                // No device connected
+                deviceSetup.style.display = 'grid';
+                connectButton.style.display = 'block';
+                deviceInfo.style.display = 'none';
+                deviceAlert.style.display = 'block';
+            }
+        }
+
+        function resetCurrentReadings() {
+            // Reset only current live readings, not historical data
+            document.getElementById('power-reading').textContent = '0';
+            document.getElementById('current-reading').textContent = '0.00';
+            document.getElementById('voltage-reading').textContent = '0';
+
+            const connectionIcon = document.getElementById('connection-icon');
+            const powerIcon = document.getElementById('power-icon');
+            const powerToggle = document.getElementById('power-toggle');
+            const connectionText = document.getElementById('connection-status-text');
+            const powerText = document.getElementById('power-status-text');
+
+            connectionIcon.className = 'fas fa-times';
+            connectionText.textContent = 'Disconnected';
+
+            powerIcon.className = 'fas fa-power-off';
+            powerText.textContent = 'Off';
+
+            powerToggle.classList.remove('active');
+            powerToggle.disabled = true;
+        }
+
+        function calculateElectricityBill() {
+            const consumption = parseFloat(document.getElementById('consumption-input').value);
+            if (isNaN(consumption) || consumption < 0) {
+                alert('Please enter a valid consumption amount');
+                return;
+            }
+
+            let totalCost = 0;
+            const breakdownData = [];
+            let remaining = consumption;
+
+            // Bangladesh electricity tariff structure
+            if (remaining > 0) {
+                const unitsInTier = Math.min(remaining, 50);
+                if (unitsInTier > 0) {
+                    totalCost += unitsInTier * 4.63;
+                    breakdownData.push({ range: '0 - 50 units', units: unitsInTier, rate: 4.63, cost: unitsInTier * 4.63 });
+                }
+                remaining -= unitsInTier;
+            }
+            if (remaining > 0) {
+                const unitsInTier = Math.min(remaining, 25);
+                if (unitsInTier > 0) {
+                    totalCost += unitsInTier * 5.26;
+                    breakdownData.push({ range: '51 - 75 units', units: unitsInTier, rate: 5.26, cost: unitsInTier * 5.26 });
+                }
+                remaining -= unitsInTier;
+            }
+            if (remaining > 0) {
+                const unitsInTier = Math.min(remaining, 125);
+                if (unitsInTier > 0) {
+                    totalCost += unitsInTier * 7.20;
+                    breakdownData.push({ range: '76 - 200 units', units: unitsInTier, rate: 7.20, cost: unitsInTier * 7.20 });
+                }
+                remaining -= unitsInTier;
+            }
+            if (remaining > 0) {
+                const unitsInTier = Math.min(remaining, 100);
+                if (unitsInTier > 0) {
+                    totalCost += unitsInTier * 7.59;
+                    breakdownData.push({ range: '201 - 300 units', units: unitsInTier, rate: 7.59, cost: unitsInTier * 7.59 });
+                }
+                remaining -= unitsInTier;
+            }
+            if (remaining > 0) {
+                const unitsInTier = Math.min(remaining, 100);
+                if (unitsInTier > 0) {
+                    totalCost += unitsInTier * 8.02;
+                    breakdownData.push({ range: '301 - 400 units', units: unitsInTier, rate: 8.02, cost: unitsInTier * 8.02 });
+                }
+                remaining -= unitsInTier;
+            }
+            if (remaining > 0) {
+                const unitsInTier = Math.min(remaining, 200);
+                if (unitsInTier > 0) {
+                    totalCost += unitsInTier * 12.67;
+                    breakdownData.push({ range: '401 - 600 units', units: unitsInTier, rate: 12.67, cost: unitsInTier * 12.67 });
+                }
+                remaining -= unitsInTier;
+            }
+            if (remaining > 0) {
+                totalCost += remaining * 14.61;
+                breakdownData.push({ range: 'Above 600 units', units: remaining, rate: 14.61, cost: remaining * 14.61 });
+            }
+
+            currentBillCalculation = { consumption, totalCost, breakdownData };
+
+            document.getElementById('bill-results').style.display = 'block';
+            document.getElementById('total-bill').textContent = `৳ ${totalCost.toFixed(2)}`;
+            document.getElementById('export-bill').style.display = 'inline-block';
+
+            let tableHTML = `
+                <div style="margin-top: 25px;">
+                    <table class="data-grid" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>Range</th>
+                                <th>Units</th>
+                                <th>Rate (৳/kWh)</th>
+                                <th>Cost (৳)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            breakdownData.forEach((row, index) => {
+                if (row.units > 0) {
+                    tableHTML += `
+                        <tr>
+                            <td>${row.range}</td>
+                            <td>${row.units.toFixed(2)}</td>
+                            <td>${row.rate.toFixed(2)}</td>
+                            <td>${row.cost.toFixed(2)}</td>
+                        </tr>
+                    `;
+                }
+            });
+            
+            tableHTML += '</tbody></table></div>';
+            document.getElementById('bill-breakdown-table').innerHTML = tableHTML;
+        }
+
+        function exportBillReport() {
+            if (!currentBillCalculation) {
+                alert('Please calculate a bill first');
+                return;
+            }
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+
+            // Enhanced Pink Header
+            doc.setFillColor(240, 98, 146);
+            doc.rect(0, 0, doc.internal.pageSize.getWidth(), 100, 'F');
+            
+            // Add decorative elements
+            doc.setFillColor(233, 30, 99);
+            doc.circle(50, 30, 15, 'F');
+            doc.circle(doc.internal.pageSize.getWidth() - 50, 30, 15, 'F');
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(32);
+            doc.text('EnergyFlow', doc.internal.pageSize.getWidth() / 2, 50, { align: 'center' });
+            doc.setFontSize(16);
+            doc.text('💡 Electricity Bill Report 💡', doc.internal.pageSize.getWidth() / 2, 75, { align: 'center' });
+
+            // Decorative line
+            doc.setDrawColor(255, 64, 129);
+            doc.setLineWidth(3);
+            doc.line(40, 120, doc.internal.pageSize.getWidth() - 40, 120);
+
+            // Body Content with enhanced styling
+            doc.setTextColor(45, 45, 45);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(14);
+
+            let yPos = 160;
+            
+            // Summary Box
+            doc.setFillColor(252, 228, 236);
+            doc.rect(40, yPos - 20, doc.internal.pageSize.getWidth() - 80, 80, 'F');
+            doc.setDrawColor(240, 98, 146);
+            doc.setLineWidth(2);
+            doc.rect(40, yPos - 20, doc.internal.pageSize.getWidth() - 80, 80, 'S');
+            
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(16);
+            doc.text(`📊 Total Consumption: ${currentBillCalculation.consumption.toFixed(2)} kWh`, 60, yPos);
+            
+            doc.setFontSize(20);
+            doc.setTextColor(240, 98, 146);
+            doc.text(`💰 Total Bill Amount: ৳ ${currentBillCalculation.totalCost.toFixed(2)}`, 60, yPos + 30);
+            
+            yPos += 100;
+
+            // Enhanced table
+            const headers = [['Range', 'Units', 'Rate (৳/kWh)', 'Cost (৳)']];
+            const data = currentBillCalculation.breakdownData.filter(row => row.units > 0).map(row => [
+                row.range,
+                row.units.toFixed(2),
+                '৳ ' + row.rate.toFixed(2),
+                '৳ ' + row.cost.toFixed(2)
+            ]);
+
+            doc.autoTable({
+                startY: yPos,
+                head: headers,
+                body: data,
+                theme: 'grid',
+                styles: {
+                    font: 'helvetica',
+                    fontSize: 11,
+                    cellPadding: 10,
+                    textColor: [45, 45, 45],
+                    lineColor: [240, 98, 146],
+                    lineWidth: 1
+                },
+                headStyles: {
+                    fillColor: [240, 98, 146],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold',
+                    fontSize: 12
+                },
+                alternateRowStyles: {
+                    fillColor: [252, 228, 236]
+                },
+                margin: { left: 40, right: 40 }
+            });
+
+            // Enhanced Footer
+            const pageHeight = doc.internal.pageSize.getHeight();
+            doc.setFillColor(248, 187, 208);
+            doc.rect(0, pageHeight - 60, doc.internal.pageSize.getWidth(), 60, 'F');
+            
+            doc.setTextColor(194, 24, 91);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(12);
+            doc.text(`✨ Generated by EnergyFlow ✨`, doc.internal.pageSize.getWidth() / 2, pageHeight - 35, { align: 'center' });
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.text(`${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, doc.internal.pageSize.getWidth() / 2, pageHeight - 20, { align: 'center' });
+
+            doc.save('energyflow-bill-report.pdf');
+        }
+
+        function exportAnalytics() {
+            const canvas = document.getElementById('analyticsChart');
+            const metricType = document.getElementById('metric-type').value;
+            const timePeriod = document.getElementById('time-period').value;
+            const totalEnergyConsumed = document.getElementById('analytics-total-usage').textContent;
+
+            const { jsPDF } = window.jspdf;
+            // Increased height for PDF (A4 size is 595x842pt, using 950 for more height)
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: [842, 950] });
+
+            // Enhanced Pink Header for Analytics
+            doc.setFillColor(240, 98, 146);
+            doc.rect(0, 0, doc.internal.pageSize.getWidth(), 100, 'F');
+            
+            // Decorative elements
+            doc.setFillColor(194, 24, 91);
+            doc.circle(50, 30, 15, 'F');
+            doc.circle(doc.internal.pageSize.getWidth() - 50, 30, 15, 'F');
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(28);
+            doc.text('EnergyFlow', doc.internal.pageSize.getWidth() / 2, 45, { align: 'center' });
+            doc.setFontSize(16);
+            doc.text('📈 Analytics Data Report 📈', doc.internal.pageSize.getWidth() / 2, 70, { align: 'center' });
+
+            // Info section with enhanced styling
+            doc.setTextColor(45, 45, 45);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(12);
+            let yPos = 130;
+            
+            // Info box
+            doc.setFillColor(252, 228, 236);
+            doc.rect(40, yPos - 10, 400, 100, 'F');
+            doc.setDrawColor(240, 98, 146);
+            doc.setLineWidth(1);
+            doc.rect(40, yPos - 10, 400, 100, 'S');
+            
+            doc.setFont('helvetica', 'bold');
+            doc.text(`📊 Metric: ${metricType.charAt(0).toUpperCase() + metricType.slice(1)}`, 50, yPos + 10);
+            doc.text(`⏰ Time Period: ${timePeriod}`, 50, yPos + 30);
+            doc.text(`⚡ Total Energy: ${totalEnergyConsumed}`, 50, yPos + 50);
+            doc.text(`📅 Generated: ${new Date().toLocaleDateString()}`, 50, yPos + 70);
+
+            // Chart with enhanced border - larger chart area
+            const chartImage = canvas.toDataURL('image/png', 1.0);
+            const chartAspectRatio = canvas.height / canvas.width;
+            const imgWidth = doc.internal.pageSize.getWidth() - 80;
+            const imgHeight = imgWidth * chartAspectRatio;
+            
+            // Chart border
+            doc.setDrawColor(240, 98, 146);
+            doc.setLineWidth(3);
+            doc.rect(37, yPos + 127, imgWidth + 6, imgHeight + 6, 'S');
+            
+            doc.addImage(chartImage, 'PNG', 40, yPos + 130, imgWidth, imgHeight);
+
+            // Enhanced Footer
+            const pageHeight = doc.internal.pageSize.getHeight();
+            doc.setFillColor(248, 187, 208);
+            doc.rect(0, pageHeight - 50, doc.internal.pageSize.getWidth(), 50, 'F');
+            doc.setTextColor(194, 24, 91);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(10);
+            doc.text(`✨ Powered by EnergyFlow - Smart Energy Monitoring ✨`, doc.internal.pageSize.getWidth() / 2, pageHeight - 25, { align: 'center' });
+
+            doc.save(`energyflow-analytics-${metricType}-${timePeriod}.pdf`);
+        }
+
+        // Initialize chart with white background
+        const ctx = document.getElementById('analyticsChart').getContext('2d');
+        analyticsChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Loading...'],
+                datasets: [{
+                    label: 'Power (Watts)',
+                    data: [0],
+                    borderColor: chartColorSchemes.power.border,
+                    backgroundColor: chartColorSchemes.power.background,
+                    pointBackgroundColor: chartColorSchemes.power.border,
+                    pointBorderColor: chartColorSchemes.power.border,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointHoverRadius: 8,
+                    borderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 1000 },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#2d2d2d',
+                            font: { size: 14, weight: '600' }
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(45, 45, 45, 0.9)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        borderColor: '#F06292',
+                        borderWidth: 2
+                    },
+                    chartAreaBackground: {
+                        backgroundColor: '#ffffff'
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            color: '#2d2d2d',
+                            maxTicksLimit: 10,
+                            font: { size: 11 }
+                        },
+                        grid: { 
+                            color: 'rgba(240, 98, 146, 0.1)',
+                            drawBorder: true,
+                            borderColor: '#F06292'
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            color: '#2d2d2d',
+                            font: { size: 11 }
+                        },
+                        grid: { 
+                            color: 'rgba(240, 98, 146, 0.1)',
+                            drawBorder: true,
+                            borderColor: '#F06292'
+                        },
+                        beginAtZero: true
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                }
+            },
+            plugins: [chartAreaBackground]
+        });
+
+        async function refreshStatus() {
+            try {
+                const response = await fetch('/api/status');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+
+                const connectionIcon = document.getElementById('connection-icon');
+                const powerIcon = document.getElementById('power-icon');
+                const powerToggle = document.getElementById('power-toggle');
+                const connectionText = document.getElementById('connection-status-text');
+                const powerText = document.getElementById('power-status-text');
+
+                // Handle connection status
+                if (data.connected === true) {
+                    connectionIcon.className = 'fas fa-wifi';
+                    connectionText.textContent = 'Connected';
+                    powerToggle.disabled = false;
+                } else {
+                    connectionIcon.className = 'fas fa-times';
+                    connectionText.textContent = 'Disconnected';
+                    powerToggle.disabled = true;
+                }
+
+                // Handle power status
+                if (data.connected === true && data.power_on === true) {
+                    powerIcon.className = 'fas fa-power-off';
+                    powerText.textContent = 'On';
+                    powerToggle.classList.add('active');
+                } else {
+                    powerIcon.className = 'fas fa-power-off';
+                    powerText.textContent = data.connected === true ? 'Off' : 'Unknown';
+                    powerToggle.classList.remove('active');
+                }
+
+                // Handle readings - only update if device is connected and sending data
+                if (data.connected === true && typeof data.watt !== 'undefined') {
+                    document.getElementById('power-reading').textContent = (data.watt || 0).toFixed(1);
+                    document.getElementById('current-reading').textContent = (data.current || 0).toFixed(2);
+                    document.getElementById('voltage-reading').textContent = (data.voltage || 0).toFixed(1);
+                } else if (!deviceConnected) {
+                    // Only reset if no device is connected
+                    document.getElementById('power-reading').textContent = '0';
+                    document.getElementById('current-reading').textContent = '0.00';
+                    document.getElementById('voltage-reading').textContent = '0';
+                }
+
+            } catch (error) {
+                console.error('Error refreshing status:', error);
+                
+                // Only reset readings if no device is connected
+                if (!deviceConnected) {
+                    resetCurrentReadings();
+                } else {
+                    // Show connection issue but keep device info
+                    const connectionIcon = document.getElementById('connection-icon');
+                    const connectionText = document.getElementById('connection-status-text');
+                    connectionIcon.className = 'fas fa-exclamation-triangle';
+                    connectionText.textContent = 'Connection Issue';
+                }
+            }
+        }
+
+        async function togglePowerState() {
+            if (!deviceConnected) {
+                alert('No device connected');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/toggle', { method: 'POST' });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+
+                if (!data.success) {
+                    alert('Failed to toggle power: ' + (data.error || 'Unknown error'));
+                } else {
+                    // Wait a moment then refresh status
+                    setTimeout(refreshStatus, 1500);
+                }
+            } catch (error) {
+                console.error('Error toggling power:', error);
+                alert('Failed to toggle power. Please check your connection and API server.');
+            }
+        }
+
+        function toggleCustomDateRange() {
+            const timePeriod = document.getElementById('time-period').value;
+            const customDates = document.getElementById('custom-dates');
+            
+            if (timePeriod === 'custom') {
+                customDates.style.display = 'block';
+                if (chartRefreshInterval) {
+                    clearInterval(chartRefreshInterval);
+                    chartRefreshInterval = null;
+                }
+            } else {
+                customDates.style.display = 'none';
+                updateAnalytics();
+                startChartRefresh();
+            }
+        }
+
+        function updateEnergyUsageCardVisibility() {
+            const metricType = document.getElementById('metric-type').value;
+            const energyUsageCard = document.getElementById('energy-usage-card');
+            
+            // Only show energy usage card for power metrics
+            if (metricType === 'power') {
+                energyUsageCard.style.display = 'block';
+            } else {
+                energyUsageCard.style.display = 'none';
+            }
+        }
+
+        // Helper function to filter data based on time range
+        function filterDataByTimeRange(data, timePeriod, startDate = null, endDate = null) {
+            if (!data || data.length === 0) return [];
+            
+            const now = new Date();
+            let cutoffTime;
+            
+            // Handle custom date range
+            if (timePeriod === 'custom' && startDate && endDate) {
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                return data.filter(item => {
+                    const itemTime = new Date(item.timestamp);
+                    return itemTime >= start && itemTime <= end;
+                });
+            }
+            
+            // Calculate cutoff time for predefined ranges
+            switch (timePeriod) {
+                case '1h':
+                    cutoffTime = new Date(now.getTime() - (60 * 60 * 1000));
+                    break;
+                case '6h':
+                    cutoffTime = new Date(now.getTime() - (6 * 60 * 60 * 1000));
+                    break;
+                case '24h':
+                    cutoffTime = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+                    break;
+                case '7d':
+                    cutoffTime = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+                    break;
+                case '30d':
+                    cutoffTime = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+                    break;
+                case '365d':
+                    cutoffTime = new Date(now.getTime() - (365 * 24 * 60 * 60 * 1000));
+                    break;
+                default:
+                    return data; // Return all data if range not recognized
+            }
+            
+            // Filter data based on cutoff time
+            return data.filter(item => {
+                const itemTime = new Date(item.timestamp);
+                return itemTime >= cutoffTime;
+            });
+        }
+
+        async function updateAnalytics() {
+            const metricType = document.getElementById('metric-type').value;
+            const timePeriod = document.getElementById('time-period').value;
+
+            // Update energy usage card visibility
+            updateEnergyUsageCardVisibility();
+
+            // Always fetch all data from API, then filter client-side for time ranges
+            let url = '/api/data';
+
+            try {
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const allData = await response.json();
+
+                if (!allData || allData.length === 0) {
+                    analyticsChart.data.labels = ['No Historical Data'];
+                    analyticsChart.data.datasets[0].data = [0];
+                    analyticsChart.update('none');
+                    document.getElementById('analytics-total-usage').textContent = '0 kWh';
+                    return;
+                }
+
+                // Filter data based on selected time range
+                let filteredData;
+                if (timePeriod === 'custom') {
+                    const startDate = document.getElementById('start-date').value;
+                    const endDate = document.getElementById('end-date').value;
+                    if (startDate && endDate) {
+                        filteredData = filterDataByTimeRange(allData, 'custom', startDate, endDate);
+                    } else {
+                        alert('Please select both start and end dates for custom range.');
+                        return;
+                    }
+                } else {
+                    filteredData = filterDataByTimeRange(allData, timePeriod);
+                }
+
+                if (filteredData.length === 0) {
+                    analyticsChart.data.labels = ['No Data for Selected Range'];
+                    analyticsChart.data.datasets[0].data = [0];
+                    analyticsChart.update('none');
+                    document.getElementById('analytics-total-usage').textContent = '0 kWh';
+                    return;
+                }
+
+                // Sort data by timestamp to ensure chronological order
+                filteredData.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+                const labels = [];
+                const values = [];
+                let totalWattSeconds = 0;
+                let prevTimestamp = null;
+
+                for (let i = 0; i < filteredData.length; i++) {
+                    const currentTimestamp = new Date(filteredData[i].timestamp);
+                    let currentValue = 0;
+                    
+                    // Extract the metric value based on type
+                    if (metricType === 'power') {
+                        currentValue = filteredData[i].watt || filteredData[i].power || 0;
+                    } else if (metricType === 'current') {
+                        currentValue = filteredData[i].current || 0;
+                    } else if (metricType === 'voltage') {
+                        currentValue = filteredData[i].voltage || 0;
+                    }
+
+                    // Calculate energy consumption for power metrics
+                    if (prevTimestamp && metricType === 'power') {
+                        const timeDiffMillis = currentTimestamp.getTime() - prevTimestamp.getTime();
+                        totalWattSeconds += (currentValue * (timeDiffMillis / 1000)); 
+                    }
+
+                    // Format timestamp for display based on time range
+                    let labelFormat;
+                    if (timePeriod === '1h' || timePeriod === '6h' || timePeriod === '24h') {
+                        labelFormat = currentTimestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    } else if (timePeriod === '7d') {
+                        labelFormat = currentTimestamp.toLocaleDateString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+                    } else if (timePeriod === '30d') {
+                        labelFormat = currentTimestamp.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit' });
+                    } else if (timePeriod === '365d') {
+                        labelFormat = currentTimestamp.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
+                    } else {
+                        labelFormat = currentTimestamp.toLocaleString();
+                    }
+                    
+                    labels.push(labelFormat);
+                    values.push(currentValue);
+                    prevTimestamp = currentTimestamp;
+                }
+
+                // Update chart with new data
+                const colors = chartColorSchemes[metricType];
+                analyticsChart.data.labels = labels;
+                analyticsChart.data.datasets[0].data = values;
+                analyticsChart.data.datasets[0].label = `${metricType.charAt(0).toUpperCase() + metricType.slice(1)} (${metricType === 'power' ? 'Watts' : metricType === 'current' ? 'A' : 'V'})`;
+                analyticsChart.data.datasets[0].borderColor = colors.border;
+                analyticsChart.data.datasets[0].backgroundColor = colors.background;
+                analyticsChart.data.datasets[0].pointBackgroundColor = colors.point;
+                analyticsChart.data.datasets[0].pointBorderColor = colors.point;
+                analyticsChart.update('none');
+
+                // Update total energy consumption (only for power metrics)
+                if (metricType === 'power' && totalWattSeconds > 0) {
+                    const totalKWH = (totalWattSeconds / 3600000).toFixed(2);
+                    document.getElementById('analytics-total-usage').textContent = `${totalKWH} kWh`;
+                } else if (metricType === 'power') {
+                    document.getElementById('analytics-total-usage').textContent = '0 kWh';
+                }
+
+            } catch (error) {
+                console.error('Error updating analytics:', error);
+                analyticsChart.data.labels = ['Error Loading Data'];
+                analyticsChart.data.datasets[0].data = [0];
+                analyticsChart.update('none');
+                document.getElementById('analytics-total-usage').textContent = 'Error';
+            }
+        }
+
+        function startRefreshIntervals() {
+            // Clear existing intervals
+            if (statusUpdateInterval) clearInterval(statusUpdateInterval);
+            if (chartRefreshInterval) clearInterval(chartRefreshInterval);
+
+            // Start status updates every 5 seconds
+            statusUpdateInterval = setInterval(refreshStatus, 5000);
+            
+            // Start chart updates every minute (only if not custom range)
+            if (document.getElementById('time-period').value !== 'custom') {
+                chartRefreshInterval = setInterval(updateAnalytics, 60000);
+            }
+        }
+
+        function startChartRefresh() {
+            if (chartRefreshInterval) clearInterval(chartRefreshInterval);
+            if (document.getElementById('time-period').value !== 'custom') {
+                chartRefreshInterval = setInterval(updateAnalytics, 60000);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('metric-type').addEventListener('change', updateAnalytics);
+        document.getElementById('time-period').addEventListener('change', () => {
+            toggleCustomDateRange();
+        });
+
+        // Visibility change handler to pause/resume when tab is hidden/shown
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                if (statusUpdateInterval) clearInterval(statusUpdateInterval);
+                if (chartRefreshInterval) clearInterval(chartRefreshInterval);
+            } else {
+                startRefreshIntervals();
+                refreshStatus();
+                updateAnalytics();
+            }
+        });
+
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('Initializing EnergyFlow Dashboard...');
+            
+            try {
+                // Check if device is already connected
+                await checkExistingDevice();
+                
+                // Load initial data
+                await refreshStatus();
+                await updateAnalytics();
+                
+                // Start refresh intervals
+                startRefreshIntervals();
+                
+                isInitialized = true;
+                console.log('Dashboard initialized successfully');
+                
+            } catch (error) {
+                console.error('Error during initialization:', error);
+                
+                // Show fallback state
+                document.getElementById('connection-status-text').textContent = 'API Error';
+                document.getElementById('power-status-text').textContent = 'Unknown';
+                document.getElementById('analytics-total-usage').textContent = 'API Error';
+                
+                analyticsChart.data.labels = ['API Connection Error'];
+                analyticsChart.data.datasets[0].data = [0];
+                analyticsChart.update('none');
+            }
+        });
+
+        // Handle page unload
+        window.addEventListener('beforeunload', () => {
+            if (statusUpdateInterval) clearInterval(statusUpdateInterval);
+            if (chartRefreshInterval) clearInterval(chartRefreshInterval);
+        });
+
+    </script>
+</body>
+</html>
